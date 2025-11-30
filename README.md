@@ -1,4 +1,4 @@
-# 🚗 ParkEZ - Vehicle Parking System (MAD II Project)
+# 🚗 FindMySpot - Vehicle Parking System (MAD II Project)
 An advanced multi-user Vehicle Parking Management System built as part of the **Modern Application Development - II (MAD II)** course. This project supports **Admin** and **User** roles, integrates **Flask**, **Vue.js**, **Redis**, **Celery**, **SQLite**, and provides complete **parking lifecycle management**, **analytics**, and **batch jobs**.
 
 ---
@@ -25,7 +25,7 @@ An advanced multi-user Vehicle Parking Management System built as part of the **
 ---
 
 # 📖 Project Overview
-ParkEZ is an end‑to‑end web application for managing 4‑wheeler parking across multiple parking lots. It supports reservation, occupancy tracking, cost calculation, reporting, and admin dashboards with analytics. Built entirely using the mandatory MAD II technologies.
+FindMySpot is an end‑to‑end web application for managing 4‑wheeler parking across multiple parking lots. It supports reservation, occupancy tracking, cost calculation, reporting, and admin dashboards with analytics. Built entirely using the mandatory MAD II technologies.
 
 This is **Version 2** of the project.
 
@@ -257,7 +257,7 @@ Data source: `GET /admin/analytics/summary`
 ---
 
 # 🎉 Final Notes
-ParkEZ is a full-stack, production‑ready parking management system built strictly using the technologies mandated by **Modern Application Development II**. It includes:
+FindMySpot is a full-stack, production‑ready parking management system built strictly using the technologies mandated by **Modern Application Development II**. It includes:
 - Authentication
 - Parking lifecycle management
 - Admin dashboards
