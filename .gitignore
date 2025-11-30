@@ -1,0 +1,14 @@
+venv/
+client/node_modules
+server/__pycache__/
+server/controllers/__pycache__/
+server/instance/parking.db
+server/models/__pycache__/
+.env
+celerybeat-schedule.bak
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+.vscode/
+*.csv
+dist/
+server/exports/

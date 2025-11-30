@@ -1,2 +1,0 @@
-reservation_id,lot_id,lot_name,spot_id,spot_number,start_time,end_time,duration_seconds,cost,remarks
-1,1,Test Lot,1,1,2025-11-28T15:58:04.018968,,,0.0,
