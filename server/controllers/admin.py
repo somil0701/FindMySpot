@@ -4,6 +4,7 @@ from ..models.lot import ParkingLot
 from ..models.spot import ParkingSpot
 from ..models.user import User
 from ..models.reservation import Reservation
+from ..utils.cache import cache_get, cache_set, cache_delete
 from ._auth_utils import token_required
 import json
 
@@ -113,8 +114,17 @@ def list_lots():
     user = getattr(request, 'current_user')
     if user.role != 'admin':
         return jsonify({'error': 'forbidden'}), 403
+
+    cache_key = "lots:summary"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return jsonify({'lots': cached})
+
     lots = ParkingLot.query.all()
-    return jsonify({'lots': [l.to_dict() for l in lots]})
+    payload = [l.to_dict() for l in lots]
+    cache_set(cache_key, payload)
+    return jsonify({'lots': payload})
+
 
 @admin_bp.route('/lots/<int:lot_id>', methods=['PUT'])
 @token_required
@@ -181,6 +191,11 @@ def edit_lot(lot_id):
 @admin_bp.route('/lots/<int:lot_id>/spots', methods=['GET'])
 @token_required
 def lot_spots(lot_id):
+    cache_key = f"lot:{lot_id}:spots"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return jsonify({'spots': cached, 'lot': {'id': lot.id, 'name': lot.name, 'capacity': lot.capacity, 'price_per_hour': lot.price_per_hour}})
+
     """
     Returns spots for a lot with enriched current reservation metadata:
     - reservation_id
@@ -257,12 +272,12 @@ def lot_spots(lot_id):
 
             out.append(item)
 
+        cache_set(cache_key, out)
         return jsonify({'spots': out, 'lot': {'id': lot.id, 'name': lot.name, 'capacity': lot.capacity, 'price_per_hour': lot.price_per_hour}})
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'internal', 'message': str(e)}), 500
-
 
 @admin_bp.route('/users', methods=['GET'])
 @token_required
@@ -270,6 +285,12 @@ def admin_list_users():
     user = getattr(request, 'current_user')
     if user.role != 'admin':
         return jsonify({'error': 'forbidden'}), 403
+
+    cache_key = "users:list"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return jsonify({'users': cached})
+
     users = User.query.order_by(User.created_at.desc()).all()
     out = []
     for u in users:
@@ -280,7 +301,9 @@ def admin_list_users():
             'role': u.role,
             'created_at': u.created_at.isoformat() if u.created_at else None
         })
+    cache_set(cache_key, out)
     return jsonify({'users': out})
+
 
 @admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
 @token_required

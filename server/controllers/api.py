@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, current_app
 from ..models.lot import ParkingLot
+from ..utils.cache import cache_get, cache_set
 import json
 
 api_bp = Blueprint('api', __name__)
@@ -40,14 +41,13 @@ def _cache_set(key, value, ttl=CACHE_TTL):
         print(f"[CACHE] SET ERROR {key}: {e}")
 
 
-
 @api_bp.route('/lots/summary')
 def lots_summary():
     """
     Returns lots summary. This is cached in Redis for CACHE_TTL seconds.
     """
     cache_key = "lots:summary"
-    data = _cache_get(cache_key)
+    data = cache_get(cache_key)
     if data is not None:
         return jsonify({'summary': data})
 
@@ -65,6 +65,5 @@ def lots_summary():
             'available': free
         })
 
-    # write to cache
-    _cache_set(cache_key, result)
+    cache_set(cache_key, result)
     return jsonify({'summary': result})

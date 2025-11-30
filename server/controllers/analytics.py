@@ -1,5 +1,6 @@
 # server/controllers/analytics.py
 from flask import Blueprint, jsonify, request, current_app
+from ..utils.cache import cache_get, cache_set, cache_delete
 from ._auth_utils import token_required
 from ..models.lot import ParkingLot
 from ..models.spot import ParkingSpot
@@ -22,6 +23,11 @@ def analytics_summary():
     - reservations_last_30_days: list of {date, count}
     - recent_reservations: last 20 reservations (enriched)
     """
+    cache_key = "analytics:summary"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
     user = getattr(request, 'current_user', None)
     if not user or user.role != 'admin':
         return jsonify({'error': 'forbidden'}), 403
@@ -107,6 +113,7 @@ def analytics_summary():
             'recent_reservations': recent
         }
 
+        cache_set(cache_key, payload, ttl=60)
         return jsonify(payload)
     except Exception as e:
         current_app.logger.exception("Analytics error: %s", e)

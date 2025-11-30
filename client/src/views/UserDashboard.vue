@@ -112,7 +112,7 @@ export default {
     // CSV export
     // -------------------------
     
-async exportClientSide() {
+    async exportClientSide() {
   try {
     // small guard
     const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -121,14 +121,11 @@ async exportClientSide() {
     this.exporting = true;
 
     // ensure we have all reservations for the user
-    // if this.reservations already contains everything you want, skip the fetch
     let data = this.reservations || [];
-    // Optionally, always fetch fresh full history:
     try {
       const resp = await this.$axios.get(`/user/reservations/${user.id}`);
       data = resp?.data?.reservations || data;
     } catch (errFetch) {
-      // if fetch fails, we fallback to local data (if any) and notify
       if (!data || data.length === 0) {
         throw new Error(errFetch?.response?.data?.error || "Failed to fetch reservations for export");
       } else {
@@ -143,9 +140,7 @@ async exportClientSide() {
 
     const safe = (v) => {
       if (v === null || v === undefined) return "";
-      // convert objects to JSON
       if (typeof v === "object") return JSON.stringify(v);
-      // escape quotes by doubling them, wrap fields with quotes if necessary
       const s = String(v);
       if (s.indexOf('"') >= 0 || s.indexOf(',') >= 0 || s.indexOf('\n') >= 0) {
         return `"${s.replace(/"/g, '""')}"`;
@@ -155,13 +150,13 @@ async exportClientSide() {
 
     for (const r of data) {
       // compute duration_seconds safely if not present
-      // let duration = "";
+      let computedDuration = "";
       try {
         if (r.start_time && r.end_time) {
           const s = new Date(r.start_time);
           const e = new Date(r.end_time);
-          if (!isNaN(s) && !isNaN(e)) {
-            duration = Math.floor((e - s) / 1000);
+          if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+            computedDuration = Math.floor((e - s) / 1000);
           }
         }
       } catch (e) { /* ignore */ }
@@ -170,7 +165,9 @@ async exportClientSide() {
       const lotId = r.lot?.id ?? (r.lot_id ?? "");
       const spotNumber = r.spot_number ?? r.spot_id ?? "";
       const cost = r.cost ?? "";
-      const duration = r.duaration_seconds ?? r.duration_seconds_current ?? "";
+      // prefer duration from server if available, else computedDuration
+      const durationFromServer = r.duration_seconds ?? r.duration_seconds_current ?? r.duaration_seconds ?? ""; // keep tolerant for older typos
+      const durationFinal = durationFromServer !== "" ? durationFromServer : computedDuration;
       const remarks = r.remarks ?? r.notes ?? "";
 
       const line = [
@@ -181,7 +178,7 @@ async exportClientSide() {
         safe(spotNumber),
         safe(r.start_time ?? ""),
         safe(r.end_time ?? ""),
-        safe(duration),
+        safe(durationFinal),
         safe(cost),
         safe(remarks)
       ];
@@ -201,7 +198,6 @@ async exportClientSide() {
 
     // trigger download
     if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-      // IE/Edge fallback
       window.navigator.msSaveOrOpenBlob(blob, filename);
     } else {
       const url = URL.createObjectURL(blob);

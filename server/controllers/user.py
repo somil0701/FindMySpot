@@ -8,6 +8,7 @@ from ..models.spot import ParkingSpot
 from ..models.reservation import Reservation
 from ..models.lot import ParkingLot
 from datetime import datetime
+from ..utils.cache import cache_delete, cache_set, cache_get
 import math
 
 user_bp = Blueprint('user', __name__)
@@ -83,6 +84,12 @@ def reserve():
         )
         db.session.add(reservation)
         db.session.commit()
+        # invalidate caches affected: lots summary and this lot's spots + analytics
+        try:
+            cache_delete("lots:summary", f"lot:{lot_id}:spots", "analytics:summary", f"user:{user.id}:reservations")
+        except Exception:
+            pass
+
     except Exception as e:
         # rollback and restore spot status if reservation creation failed
         db.session.rollback()
@@ -212,6 +219,14 @@ def release():
     # commit changes
     try:
         db.session.commit()
+        lot_id = getattr(lot, 'id', None)
+        try:
+            keys = ["lots:summary", "analytics:summary", f"user:{res.user_id}:reservations"]
+            if lot_id:
+                keys.append(f"lot:{lot_id}:spots")
+            cache_delete(*keys)
+        except Exception:
+            pass
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'failed to save release', 'message': str(e)}), 500
@@ -231,6 +246,10 @@ def release():
 @user_bp.route('/reservations/<int:user_id>', methods=['GET', 'OPTIONS'])
 @token_required
 def reservations(user_id):
+    cache_key = f"user:{user_id}:reservations"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return jsonify({'reservations': cached})
     try:
         current = getattr(request, 'current_user', None)
         current_app.logger.debug(f"[DEBUG] reservations called. requester: {getattr(current,'id', None)} username: {getattr(current,'username', None)} target_user_id: {user_id}")
@@ -285,7 +304,9 @@ def reservations(user_id):
 
             out.append(rd)
 
+        cache_set(cache_key, out, ttl=30)
         return jsonify({'reservations': out})
+
     except Exception as e:
         tb = traceback.format_exc()
         current_app.logger.error("Unhandled exception in /user/reservations: %s\n%s", e, tb)
