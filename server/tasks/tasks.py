@@ -16,7 +16,10 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 # broker/backend (Redis) from env or default
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+REDIS_URL = os.environ.get('REDIS_URL')
+
+if not REDIS_URL:
+    raise ValueError("REDIS_URL is not set in environment variables")
 
 celery = Celery(
     "parking_tasks",
